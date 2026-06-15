@@ -1,10 +1,12 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "target": "ES2020",
-    "outDir": "out",
-    "lib": ["ES2020"],
+    "outDir": "dist",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "sourceMap": true,
+    "declaration": true,
     "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
@@ -12,5 +14,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "exclude": ["node_modules", ".vscode-test", "packages"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }

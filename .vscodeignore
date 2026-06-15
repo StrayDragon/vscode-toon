@@ -1,15 +1,55 @@
+# Development and build files
 .vscode/**
 .vscode-test/**
+out/**
+node_modules/**
 src/**
-.gitignore
-.eslintrc.json
-**/*.map
-**/*.ts
-!out/**/*.js
-*.vsix
-NEXT_STEPS.md
-PUBLISH_FREE.md
-toon.jpg
-tsconfig.json
-package-lock.json
 .git/**
+.gitignore
+.gitattributes
+.github/**
+
+# Build tools and configuration
+esbuild.js
+tsconfig.json
+eslint.config.js
+.vscodeignore
+justfile
+
+# Source files (compiled to dist/)
+**/*.ts
+**/*.map
+dist/**/*.js.map
+
+# Documentation and examples
+docs/**
+examples/**
+*.md
+!README.md
+!CHANGELOG.md
+
+# Workspace packages (bundled into dist/)
+packages/**
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# Images (keep only icon)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+!images/toon.png
+
+# Test and CI
+validate-cicd.js
+verify-official.js
+
+# IDE and OS files
+.vscode/settings.json
+.DS_Store
+Thumbs.db
+*~
+
+# Previous builds
+*.vsix

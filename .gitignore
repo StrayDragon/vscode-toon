@@ -4,7 +4,11 @@ npm-debug.log*
 
 # Build outputs
 out/
+dist/
 *.vsix
+packages/**/dist/
+packages/**/src/*.js
+packages/**/src/*.js.map
 
 # OS files
 .DS_Store

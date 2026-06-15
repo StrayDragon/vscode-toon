@@ -3,6 +3,7 @@ import { ToonValidator } from './validator';
 import { ToonFormatter } from './formatter';
 import { ToonCompletionProvider } from './completion';
 import { ToonHoverProvider } from './hover';
+import { showToonPreview, registerPreviewOnChange } from './preview';
 import { encode, decode } from '@toon-format/toon';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -102,6 +103,16 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
+
+  // Register preview command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('toon.preview', () => {
+      showToonPreview();
+    })
+  );
+
+  // Register preview auto-refresh on save/editor change
+  registerPreviewOnChange(context);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('toon.convertFromJson', async () => {

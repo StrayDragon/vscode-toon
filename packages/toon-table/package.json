@@ -1,0 +1,47 @@
+{
+  "name": "@toon-format/toon-table",
+  "version": "0.1.0",
+  "description": "Render TOON format as interactive nested HTML tables. Zero-runtime-dependency, works in browser and Node.js. Mirror of https://jsontotable.org/toon-to-table",
+  "type": "module",
+  "license": "MIT",
+  "author": "vishalraut",
+  "keywords": [
+    "toon",
+    "toon-table",
+    "token-oriented-object-notation",
+    "data-format",
+    "html-table",
+    "visualization",
+    "preview",
+    "llm"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vishalraut2106/vscode-toon.git",
+    "directory": "packages/toon-table"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@toon-format/toon": "^1.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "rimraf": "^5.0.0"
+  }
+}
