@@ -24,17 +24,57 @@ export async function showToonPreview(): Promise<void> {
     return;
   }
 
-  const text = editor.document.getText().trim();
+  const fileName = editor.document.fileName.split('/').pop() ?? 'Untitled';
+  await renderToonPreview(editor.document.getText(), `TOON Preview — ${fileName}`);
+}
+
+/**
+ * Preview a single ```toon fenced block from a Markdown document.
+ *
+ * `startLine` is the 0-based line of the opening fence (the line the CodeLens
+ * sits on). Extracts the fenced body and renders it via the shared path.
+ */
+export async function previewMarkdownBlock(
+  document: vscode.TextDocument,
+  startLine: number,
+): Promise<void> {
+  const content = extractToonBlockContent(document, startLine);
+  const fileName = document.fileName.split('/').pop() ?? 'Untitled';
+  await renderToonPreview(content, `TOON Preview — ${fileName}`);
+}
+
+/**
+ * Shared render entry point: trims, opens/reuses the panel, and renders the
+ * given TOON text as nested HTML tables.
+ */
+async function renderToonPreview(toonText: string, title: string): Promise<void> {
+  const text = toonText.trim();
   if (!text) {
     vscode.window.showWarningMessage('TOON document is empty');
     return;
   }
 
-  // Build or reuse panel
+  const panel = getOrCreatePanel(title);
+
+  try {
+    // Dynamic ESM import
+    const { toonToTableHTML } = await import('@toon-format/toon-table');
+    const html = toonToTableHTML(text, { strict: false });
+    panel.webview.html = wrapInPage(html);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    panel.webview.html = wrapErrorPage(msg);
+  }
+}
+
+/**
+ * Build (or reveal) the shared preview panel and set its title.
+ */
+function getOrCreatePanel(title: string): vscode.WebviewPanel {
   if (!currentPanel) {
     currentPanel = vscode.window.createWebviewPanel(
       'toonPreview',
-      'TOON Preview',
+      title,
       vscode.ViewColumn.Beside,
       {
         enableScripts: false, // static HTML only — no JS in preview for security
@@ -54,19 +94,45 @@ export async function showToonPreview(): Promise<void> {
     currentPanel.reveal(vscode.ViewColumn.Beside);
   }
 
-  // Update panel title with filename
-  currentPanel.title = `TOON Preview — ${editor.document.fileName.split('/').pop() ?? 'Untitled'}`;
+  currentPanel.title = title;
+  return currentPanel;
+}
 
-  // Render
-  try {
-    // Dynamic ESM import
-    const { toonToTableHTML } = await import('@toon-format/toon-table');
-    const html = toonToTableHTML(text, { strict: false });
-    currentPanel.webview.html = wrapInPage(html);
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    currentPanel.webview.html = wrapErrorPage(msg);
+/**
+ * Extract the inner content of a ```toon fenced block in a Markdown document.
+ *
+ * `startLine` is the 0-based opening-fence line. Throws if the line is not a
+ * fence or the matching closing fence is missing.
+ */
+function extractToonBlockContent(
+  document: vscode.TextDocument,
+  startLine: number,
+): string {
+  const total = document.lineCount;
+  if (startLine < 0 || startLine >= total) {
+    throw new Error('Invalid TOON block start line');
   }
+
+  // Capture the fence run (``` or ~~~, possibly more than three) so we match
+  // the *same* marker on the closing line.
+  const fenceMatch = document.lineAt(startLine).text.match(/^\s*(`{3,}|~{3,})/);
+  if (!fenceMatch) {
+    throw new Error('Specified line is not a TOON code fence');
+  }
+  const fence = fenceMatch[1];
+
+  let endLine = startLine + 1;
+  while (endLine < total && document.lineAt(endLine).text.trim() !== fence) {
+    endLine++;
+  }
+
+  if (endLine >= total) {
+    throw new Error('Missing closing fence for TOON block');
+  }
+
+  return document.getText(
+    new vscode.Range(startLine + 1, 0, endLine, 0),
+  );
 }
 
 /**

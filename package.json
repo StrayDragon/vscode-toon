@@ -36,7 +36,9 @@
   "homepage": "https://github.com/vishalraut2106/vscode-toon#readme",
   "license": "MIT",
   "main": "./dist/extension.js",
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
   "contributes": {
     "commands": [
       {
@@ -55,6 +57,11 @@
         "command": "toon.preview",
         "title": "TOON: Preview Table",
         "icon": "$(preview)"
+      },
+      {
+        "command": "toon.previewBlock",
+        "title": "TOON: Preview Table (Markdown Block)",
+        "enablement": "resourceLangId == markdown"
       }
     ],
     "languages": [

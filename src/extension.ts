@@ -3,7 +3,8 @@ import { ToonValidator } from './validator';
 import { ToonFormatter } from './formatter';
 import { ToonCompletionProvider } from './completion';
 import { ToonHoverProvider } from './hover';
-import { showToonPreview, registerPreviewOnChange } from './preview';
+import { showToonPreview, registerPreviewOnChange, previewMarkdownBlock } from './preview';
+import { ToonBlockCodeLensProvider, isMarkdown } from './codeLens';
 import { encode, decode } from '@toon-format/toon';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -113,6 +114,87 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register preview auto-refresh on save/editor change
   registerPreviewOnChange(context);
+
+  // --- Markdown ```toon block CodeLens (preview only) ---
+  const toonCodeLensProvider = new ToonBlockCodeLensProvider();
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      [
+        { scheme: 'file', language: 'markdown' },
+        { scheme: 'untitled', language: 'markdown' },
+      ],
+      toonCodeLensProvider,
+    ),
+  );
+
+  // CodeLens action: preview a single ```toon fenced block.
+  context.subscriptions.push(
+    vscode.commands.registerCommand('toon.previewBlock', async (
+      documentUri?: unknown,
+      blockInfo?: unknown,
+    ) => {
+      const uri = documentUri instanceof vscode.Uri
+        ? documentUri
+        : vscode.window.activeTextEditor?.document.uri;
+      if (!uri) {
+        vscode.window.showWarningMessage('No document for TOON block preview');
+        return;
+      }
+
+      const startLine = (blockInfo as { startLine?: unknown } | undefined)?.startLine;
+      if (typeof startLine !== 'number') {
+        vscode.window.showWarningMessage('Invalid TOON block location');
+        return;
+      }
+
+      try {
+        const document = await vscode.workspace.openTextDocument(uri);
+        await previewMarkdownBlock(document, startLine);
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `Failed to preview TOON block: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }),
+  );
+
+  // Debounced CodeLens refresh: only when a ```toon fence appears/changes in
+  // the active Markdown editor (avoids rescanning unrelated edits).
+  const hasToonBlockSignal = (value: string): boolean =>
+    /(^|\n)\s*(`{3,}|~{3,})toon\b/i.test(value);
+
+  let refreshTimeout: NodeJS.Timeout | undefined;
+  const debouncedRefresh = (delay = 300): void => {
+    if (refreshTimeout) {
+      clearTimeout(refreshTimeout);
+    }
+    refreshTimeout = setTimeout(() => toonCodeLensProvider.refresh(), delay);
+  };
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      const active = vscode.window.activeTextEditor;
+      if (!active || event.document !== active.document || !isMarkdown(event.document)) {
+        return;
+      }
+      const touchesSignal = event.contentChanges.some(
+        (change) =>
+          hasToonBlockSignal(change.text) ||
+          (change.rangeLength > 0 && hasToonBlockSignal(event.document.getText(change.range))),
+      );
+      if (touchesSignal) {
+        debouncedRefresh();
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor && isMarkdown(editor.document) && hasToonBlockSignal(editor.document.getText())) {
+        debouncedRefresh(500);
+      }
+    }),
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('toon.convertFromJson', async () => {
